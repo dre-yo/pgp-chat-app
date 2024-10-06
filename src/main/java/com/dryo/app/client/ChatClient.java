@@ -11,6 +11,7 @@ public class ChatClient {
   private DataOutputStream out;
   private DataInputStream in;
   private Scanner scanner;
+  private String username;
 
   public ChatClient(String address, int port) throws IOException {
     socket = new Socket(address, port);
@@ -20,7 +21,17 @@ public class ChatClient {
   }
 
   public void start() {
+    System.out.print("Enter your username: ");
+    username = scanner.nextLine(); // Ask for the username
     System.out.println("Connected to the server");
+
+    // Send the username to the server
+    try {
+      out.writeUTF(username);
+      out.flush();
+    } catch (IOException e) {
+      System.out.println("Error sending username to server: " + e.getMessage());
+    }
 
     // Create a new thread to listen for incoming messages from the server
     new Thread(this::listenForMessages).start();
@@ -28,10 +39,14 @@ public class ChatClient {
     String message = "";
     while (!message.equals("exit")) {
       try {
-        System.out.print("You: ");
+        System.out.print("> "); // Show the prompt for user input
         message = scanner.nextLine();
-        out.writeUTF(message);
-        out.flush();
+
+        // Ensure the user input is not empty before sending
+        if (!message.trim().isEmpty()) {
+          out.writeUTF(message);
+          out.flush();
+        }
       } catch (IOException e) {
         System.out.println("Error sending message: " + e.getMessage());
       }
@@ -45,7 +60,11 @@ public class ChatClient {
     String messageFromServer = "";
     try {
       while (!socket.isClosed() && (messageFromServer = in.readUTF()) != null) {
-        System.out.println(messageFromServer); // Display message from other clients
+        // Only display non-empty messages
+        if (!messageFromServer.trim().isEmpty()) {
+          System.out.println(messageFromServer);
+        }
+        System.out.print("> ");
       }
     } catch (IOException e) {
       System.out.println("Connection closed.");
